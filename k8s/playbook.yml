@@ -1,0 +1,43 @@
+- name: Demostrar módulos k8s
+  host: localhost
+  gather_facts: no
+  connection: local
+  vars:
+    namespace: oscar-bravo-dev
+    
+    module_defaults:
+      group/k8s:
+        namespace: "{{ namespace }}"
+        api_key: "sha256~FTdcFwy9NJAZcrRA8lhP-kLt7s01qN2QCYQxGJzuNoI"
+        host: https://api.sandbox-m2.ll9k.p1.openshiftapps.com:6443
+        
+    tasks:
+      - name: Crear los objetos del manifiesto
+        k8s:
+          state: present
+          src: "{{ playbook_dir + '/hello.yml' }}"
+         
+      - name: Cambiar del ClusterIP a NodePort
+        k8s_service:
+          state: present
+          name: nodejs-ex
+          type: NodePort
+          ports:
+            - port: 8080
+              protocol: TCP
+      
+      - name: Obtener info de los pods
+        k8s_info:
+          kind: Pod
+          label_selectors:
+            - app = nodejs-ex
+      
+      - name: Exponer https con ClusterIP
+        k8s_service:
+          state: present
+          name: nodejs-ex
+          ports:
+            - port: 443
+              protocol: TCP
+          selector:
+            app: nodejs-ex
